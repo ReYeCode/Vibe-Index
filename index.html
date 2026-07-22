@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vibemodded Index</title>
+<link rel="stylesheet" href="docs/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">[VM]</span>
+      <h1>vibemodded index</h1>
+    </div>
+    <div id="auth-area">
+      <button id="login-btn" class="btn btn-primary">Log in with GitHub</button>
+      <div id="user-box" class="user-box hidden">
+        <img id="user-avatar" src="" alt="">
+        <span id="user-name"></span>
+        <button id="logout-btn" class="btn btn-ghost">Log out</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <p id="auth-error" class="banner banner-error hidden"></p>
+
+    <section id="submit-section" class="panel hidden">
+      <h2>Submit a mod</h2>
+      <form id="mod-form">
+        <label>
+          Mod name
+          <input type="text" id="mod-name" placeholder="Cool Mod" required>
+        </label>
+        <label>
+          Description
+          <textarea id="mod-description" placeholder="What does it do?" rows="3"></textarea>
+        </label>
+        <label>
+          Version
+          <input type="text" id="mod-version" placeholder="1.0.0">
+        </label>
+        <label>
+          Download URL
+          <input type="url" id="mod-download" placeholder="https://github.com/you/mod/releases" required>
+        </label>
+        <label>
+          Repository URL (optional)
+          <input type="url" id="mod-repo" placeholder="https://github.com/you/mod">
+        </label>
+        <button type="submit" class="btn btn-primary">Submit mod</button>
+      </form>
+      <p id="submit-status" class="status-line"></p>
+    </section>
+
+    <section>
+      <div class="section-heading">
+        <h2>Mods</h2>
+        <span id="mod-count" class="mod-count"></span>
+      </div>
+      <div id="mods-list" class="mods-grid">
+        <p class="muted">Loading mods…</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="/docs/app.js"></script>
+</body>
+</html>
