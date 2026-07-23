@@ -1,4 +1,6 @@
-// ⚠️ Replace this with your own deployed Render backend URL.
+// ⚠️ REPLACE this with your actual Render service URL — tell me the name
+// you gave it on Render and I'll fill this in for you, or just swap it
+// yourself: it's always https://<your-render-service-name>.onrender.com
 const API_URL = 'https://vibemodded-index-api.onrender.com';
 
 const loginBtn = document.getElementById('login-btn');
