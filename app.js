@@ -1,8 +1,42 @@
-// ⚠️ REPLACE this with your actual Render service URL — tell me the name
-// you gave it on Render and I'll fill this in for you, or just swap it
-// yourself: it's always https://<your-render-service-name>.onrender.com
-const API_URL = 'https://vibemodded-index-api.onrender.com';
+// ── Firebase setup ────────────────────────────────────────────────
+// Get these 6 values from: Firebase console → ⚙️ (gear icon, top left)
+// → Project settings → scroll to "Your apps" → click the web app (</>)
+// → "SDK setup and configuration" → Config.
+// These are NOT secret — Firebase config is meant to be public in
+// frontend code, unlike the old GITHUB_CLIENT_SECRET / JWT_SECRET.
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.17.0/firebase-app.js';
+import {
+  getAuth,
+  GithubAuthProvider,
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged,
+} from 'https://www.gstatic.com/firebasejs/12.17.0/firebase-auth.js';
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  orderBy,
+  serverTimestamp,
+} from 'https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js';
 
+const firebaseConfig = {
+  apiKey: "AIzaSyBIQa6Ykh6149gWU1PfnBxzKuWF_s6c-mY",
+  authDomain: "vibemodded-index.firebaseapp.com",
+  projectId: "vibemodded-index",
+  storageBucket: "vibemodded-index.firebasestorage.app",
+  messagingSenderId: "182624398225",
+  appId: "1:182624398225:web:4e24a4255938f224408830"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const githubProvider = new GithubAuthProvider();
+
+// ── DOM references ──────────────────────────────────────────────
 const loginBtn = document.getElementById('login-btn');
 const logoutBtn = document.getElementById('logout-btn');
 const userBox = document.getElementById('user-box');
@@ -15,73 +49,45 @@ const modsList = document.getElementById('mods-list');
 const modCount = document.getElementById('mod-count');
 const authError = document.getElementById('auth-error');
 
-const TOKEN_KEY = 'vibemodded_token';
-
-function getToken() {
-  return localStorage.getItem(TOKEN_KEY);
-}
-function setToken(token) {
-  localStorage.setItem(TOKEN_KEY, token);
-}
-function clearToken() {
-  localStorage.removeItem(TOKEN_KEY);
-}
-
-// After GitHub login, the backend redirects here with either
-// ?token=... (success) or ?auth_error=... (failure). Read whichever is
-// present, then scrub the query string so it doesn't linger in the URL.
-function captureRedirectParams() {
-  const params = new URLSearchParams(window.location.search);
-  const token = params.get('token');
-  const err = params.get('auth_error');
-
-  if (token) setToken(token);
-  if (err) {
-    authError.textContent = `Login failed: ${err}. Please try again.`;
+// ── Auth ──────────────────────────────────────────────────────────
+// No backend, no JWT, no redirect — Firebase handles the whole GitHub
+// OAuth handshake itself and just gives us a signed-in user back.
+loginBtn.addEventListener('click', async () => {
+  authError.classList.add('hidden');
+  try {
+    await signInWithPopup(auth, githubProvider);
+  } catch (err) {
+    authError.textContent = `Login failed: ${err.message}`;
     authError.classList.remove('hidden');
   }
-  if (token || err) {
-    window.history.replaceState({}, document.title, window.location.pathname);
-  }
-}
+});
 
-async function loadCurrentUser() {
-  const token = getToken();
-  if (!token) {
-    showLoggedOut();
-    return;
-  }
+logoutBtn.addEventListener('click', () => signOut(auth));
 
-  try {
-    const res = await fetch(`${API_URL}/api/user`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) throw new Error('Session expired');
-    const user = await res.json();
-
+// Fires once on page load with whatever the current session is (or null),
+// and again any time sign-in state changes. Firebase persists the session
+// itself, so there's no localStorage token to manage anymore.
+onAuthStateChanged(auth, (user) => {
+  if (user) {
     loginBtn.classList.add('hidden');
     userBox.classList.remove('hidden');
     submitSection.classList.remove('hidden');
-    userAvatar.src = user.avatarUrl;
-    userName.textContent = user.username;
-  } catch (err) {
-    clearToken();
-    showLoggedOut();
+    userAvatar.src = user.photoURL || '';
+    userName.textContent = user.displayName || user.email || 'logged in';
+  } else {
+    loginBtn.classList.remove('hidden');
+    userBox.classList.add('hidden');
+    submitSection.classList.add('hidden');
   }
-}
+});
 
-function showLoggedOut() {
-  loginBtn.classList.remove('hidden');
-  userBox.classList.add('hidden');
-  submitSection.classList.add('hidden');
-}
-
+// ── Mods list ─────────────────────────────────────────────────────
 async function loadMods() {
   modsList.innerHTML = '<p class="muted">Loading mods…</p>';
   try {
-    const res = await fetch(`${API_URL}/api/mods`);
-    if (!res.ok) throw new Error('Request failed');
-    const mods = await res.json();
+    const modsQuery = query(collection(db, 'mods'), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(modsQuery);
+    const mods = snapshot.docs.map((doc) => doc.data());
 
     modCount.textContent = mods.length ? `${mods.length} indexed` : '';
 
@@ -101,19 +107,19 @@ async function loadMods() {
         <h3 class="mod-name">${escapeHtml(mod.name)}</h3>
         <p class="mod-desc">${escapeHtml(mod.description || 'No description provided.')}</p>
         <div class="mod-author">
-          <img src="${escapeAttr(mod.author_avatar)}" alt="">
-          <span>${escapeHtml(mod.author)}</span>
+          <img src="${escapeAttr(mod.authorAvatar)}" alt="">
+          <span>${escapeHtml(mod.authorName)}</span>
         </div>
         <div class="mod-links">
-          <a href="${escapeAttr(mod.download_url)}" target="_blank" rel="noopener">Download</a>
-          ${mod.repo_url ? `<a class="secondary" href="${escapeAttr(mod.repo_url)}" target="_blank" rel="noopener">Source</a>` : ''}
+          <a href="${escapeAttr(mod.downloadUrl)}" target="_blank" rel="noopener">Download</a>
+          ${mod.repoUrl ? `<a class="secondary" href="${escapeAttr(mod.repoUrl)}" target="_blank" rel="noopener">Source</a>` : ''}
         </div>
       </article>`
       )
       .join('');
   } catch (err) {
-    modsList.innerHTML =
-      '<p class="muted">Could not load mods. Free Render services sleep after 15 min idle — the first request can take ~30-60s to wake it up. Try refreshing shortly.</p>';
+    console.error(err);
+    modsList.innerHTML = '<p class="muted">Could not load mods — open the browser console for details.</p>';
   }
 }
 
@@ -126,40 +132,25 @@ function escapeAttr(str) {
   return escapeHtml(str).replace(/"/g, '&quot;');
 }
 
-loginBtn.addEventListener('click', () => {
-  window.location.href = `${API_URL}/auth/github`;
-});
-
-logoutBtn.addEventListener('click', () => {
-  clearToken();
-  showLoggedOut();
-});
-
+// ── Submit form ───────────────────────────────────────────────────
 modForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-  const token = getToken();
+  const user = auth.currentUser;
+  if (!user) return;
+
   submitStatus.textContent = 'Submitting…';
-
   try {
-    const res = await fetch(`${API_URL}/api/mods`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        name: document.getElementById('mod-name').value,
-        description: document.getElementById('mod-description').value,
-        version: document.getElementById('mod-version').value,
-        download_url: document.getElementById('mod-download').value,
-        repo_url: document.getElementById('mod-repo').value,
-      }),
+    await addDoc(collection(db, 'mods'), {
+      name: document.getElementById('mod-name').value,
+      description: document.getElementById('mod-description').value,
+      version: document.getElementById('mod-version').value,
+      downloadUrl: document.getElementById('mod-download').value,
+      repoUrl: document.getElementById('mod-repo').value,
+      authorId: user.uid,
+      authorName: user.displayName || 'anonymous',
+      authorAvatar: user.photoURL || '',
+      createdAt: serverTimestamp(),
     });
-
-    if (!res.ok) {
-      const errBody = await res.json().catch(() => ({}));
-      throw new Error(errBody.error || `Request failed (${res.status})`);
-    }
 
     modForm.reset();
     submitStatus.textContent = 'Mod submitted!';
@@ -169,6 +160,4 @@ modForm.addEventListener('submit', async (e) => {
   }
 });
 
-captureRedirectParams();
-loadCurrentUser();
 loadMods();
