@@ -11,55 +11,75 @@
     <div class="brand">
       <span class="brand-mark">[VM]</span>
       <h1>vibemodded index</h1>
+      <button id="nav-mods" class="nav-link active">Mods</button>
     </div>
     <div id="auth-area">
       <button id="login-btn" class="btn btn-primary">Log in with GitHub</button>
-      <div id="user-box" class="user-box hidden">
+      <button id="nav-profile" class="profile-pill hidden">
         <img id="user-avatar" src="" alt="">
         <span id="user-name"></span>
-        <button id="logout-btn" class="btn btn-ghost">Log out</button>
-      </div>
+      </button>
     </div>
   </header>
 
   <main>
     <p id="auth-error" class="banner banner-error hidden"></p>
 
-    <section id="submit-section" class="panel hidden">
-      <h2>Submit a mod</h2>
-      <form id="mod-form">
-        <label>
-          Mod name
-          <input type="text" id="mod-name" placeholder="Cool Mod" required>
-        </label>
-        <label>
-          Description
-          <textarea id="mod-description" placeholder="What does it do?" rows="3"></textarea>
-        </label>
-        <label>
-          Version
-          <input type="text" id="mod-version" placeholder="1.0.0">
-        </label>
-        <label>
-          Download URL
-          <input type="url" id="mod-download" placeholder="https://github.com/you/mod/releases" required>
-        </label>
-        <label>
-          Repository URL (optional)
-          <input type="url" id="mod-repo" placeholder="https://github.com/you/mod">
-        </label>
-        <button type="submit" class="btn btn-primary">Submit mod</button>
-      </form>
-      <p id="submit-status" class="status-line"></p>
-    </section>
-
-    <section>
+    <!-- ── Mods view ─────────────────────────────────────────── -->
+    <section id="view-mods">
       <div class="section-heading">
         <h2>Mods</h2>
         <span id="mod-count" class="mod-count"></span>
       </div>
       <div id="mods-list" class="mods-grid">
         <p class="muted">Loading mods…</p>
+      </div>
+    </section>
+
+    <!-- ── Profile view ──────────────────────────────────────── -->
+    <section id="view-profile" class="hidden">
+      <div class="profile-grid">
+
+        <div class="panel profile-card">
+          <img id="profile-avatar" class="profile-avatar" src="" alt="">
+          <form id="display-name-form">
+            <label>
+              Display name
+              <input type="text" id="display-name-input">
+            </label>
+            <button type="submit" class="btn btn-ghost">Update</button>
+          </form>
+          <p id="profile-status" class="status-line"></p>
+          <button id="logout-btn" class="btn btn-ghost logout-btn">Log out</button>
+        </div>
+
+        <div class="panel">
+          <h2>Submit a new mod</h2>
+          <p class="muted small">
+            Paste your mod's GitHub repository URL. We'll read
+            <code>mod.json</code> from the repo for the name, description,
+            and version, and grab the <code>.geode</code> file from your
+            latest release automatically — nothing else to fill in.
+          </p>
+          <form id="mod-form">
+            <label>
+              GitHub repository URL
+              <input type="url" id="mod-repo-url" placeholder="https://github.com/you/your-mod" required>
+            </label>
+            <button type="submit" class="btn btn-primary">Scan &amp; submit</button>
+          </form>
+          <p id="submit-status" class="status-line"></p>
+
+          <h3>Your pending mods</h3>
+          <div id="pending-list"><p class="muted">Loading…</p></div>
+
+          <h3>Your approved mods</h3>
+          <div id="approved-list"><p class="muted">Loading…</p></div>
+
+          <h3>Your rejected mods</h3>
+          <div id="rejected-list"><p class="muted">Loading…</p></div>
+        </div>
+
       </div>
     </section>
   </main>

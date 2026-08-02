@@ -232,7 +232,93 @@ input:focus, textarea:focus, button:focus-visible {
 }
 
 .muted { color: var(--muted); }
+.muted.small { font-size: 0.8rem; }
 .hidden { display: none !important; }
+
+/* ── Nav ─────────────────────────────────────────────────────── */
+.nav-link {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+}
+.nav-link.active { color: var(--text); background: var(--surface-2); }
+
+.profile-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.25rem 0.8rem 0.25rem 0.35rem;
+  cursor: pointer;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+}
+.profile-pill img { width: 24px; height: 24px; border-radius: 50%; }
+
+/* ── Profile view ────────────────────────────────────────────── */
+.profile-grid {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+@media (max-width: 700px) {
+  .profile-grid { grid-template-columns: 1fr; }
+}
+
+.profile-card { text-align: center; }
+.profile-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  margin-bottom: 1rem;
+}
+.profile-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  text-align: left;
+  margin-bottom: 0.5rem;
+}
+.profile-card label {
+  font-size: 0.8rem;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.logout-btn { width: 100%; margin-top: 0.5rem; }
+
+#mod-form { margin-bottom: 0; }
+
+.panel h3 {
+  font-size: 0.9rem;
+  margin: 1.5rem 0 0.6rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.my-mod-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.7rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+}
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
