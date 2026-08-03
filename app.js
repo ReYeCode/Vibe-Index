@@ -42,7 +42,7 @@ const firebaseConfig = {
 // → Authentication → Users tab, after logging in once. This list must
 // match ADMIN_UIDS in firestore.rules exactly, or the buttons will show
 // but every click will be rejected by the server.
-const ADMIN_UIDS = ['REPLACE_WITH_YOUR_UID'];
+const ADMIN_UIDS = ['RtupX72YrbYPK7ai4ot0Lbu3oCo1'];
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
