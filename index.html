@@ -12,6 +12,8 @@
       <span class="brand-mark">[VM]</span>
       <h1>vibemodded index</h1>
       <button id="nav-mods" class="nav-link active">Mods</button>
+      <button id="nav-developers" class="nav-link">Developers</button>
+      <button id="nav-admin" class="nav-link hidden">Admin</button>
     </div>
     <div id="auth-area">
       <button id="login-btn" class="btn btn-primary">Log in with GitHub</button>
@@ -27,12 +29,64 @@
 
     <!-- ── Mods view ─────────────────────────────────────────── -->
     <section id="view-mods">
-      <div class="section-heading">
-        <h2>Mods</h2>
-        <span id="mod-count" class="mod-count"></span>
+      <div class="toolbar">
+        <input type="search" id="search-input" placeholder="Search mods…" class="search-input">
+        <label class="sort-label">
+          Sort by
+          <select id="sort-select">
+            <option value="downloads">Most downloaded</option>
+            <option value="newest">Newest</option>
+            <option value="name">Name (A-Z)</option>
+          </select>
+        </label>
       </div>
-      <div id="mods-list" class="mods-grid">
-        <p class="muted">Loading mods…</p>
+
+      <div id="active-filter-banner" class="active-filter hidden">
+        <span id="active-filter-text"></span>
+        <button id="clear-filter-btn" class="btn btn-ghost small">Clear ✕</button>
+      </div>
+
+      <div class="mods-layout">
+        <aside class="filters-panel">
+          <div class="filter-group">
+            <h4>Your mods</h4>
+            <label class="checkbox-row">
+              <input type="checkbox" id="filter-mine"> Only my mods
+            </label>
+          </div>
+          <div class="filter-group">
+            <h4>Other</h4>
+            <label class="checkbox-row">
+              <input type="checkbox" id="filter-featured"> Featured only
+            </label>
+          </div>
+          <div class="filter-group">
+            <h4>Platform</h4>
+            <div id="platform-filters" class="filter-list"><p class="muted small">—</p></div>
+          </div>
+          <div class="filter-group">
+            <h4>Tags</h4>
+            <div id="tag-filters" class="filter-list"><p class="muted small">—</p></div>
+          </div>
+        </aside>
+
+        <div class="mods-main">
+          <div class="section-heading">
+            <h2>Mods</h2>
+            <span id="mod-count" class="mod-count"></span>
+          </div>
+          <div id="mods-list" class="mods-grid">
+            <p class="muted">Loading mods…</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Developers view ───────────────────────────────────── -->
+    <section id="view-developers" class="hidden">
+      <div class="section-heading"><h2>Developers</h2></div>
+      <div id="developers-list" class="developers-grid">
+        <p class="muted">Loading…</p>
       </div>
     </section>
 
@@ -58,8 +112,9 @@
           <p class="muted small">
             Paste your mod's GitHub repository URL. We'll read
             <code>mod.json</code> from the repo for the name, description,
-            and version, and grab the <code>.geode</code> file from your
-            latest release automatically — nothing else to fill in.
+            version, tags, and platforms, and grab the <code>.geode</code>
+            file from your latest release automatically. The repo must
+            belong to the GitHub account you're logged in as.
           </p>
           <form id="mod-form">
             <label>
@@ -80,6 +135,18 @@
           <div id="rejected-list"><p class="muted">Loading…</p></div>
         </div>
 
+      </div>
+    </section>
+
+    <!-- ── Admin view ────────────────────────────────────────── -->
+    <section id="view-admin" class="hidden">
+      <div class="panel">
+        <h2>Pending review</h2>
+        <div id="admin-pending-list"><p class="muted">Loading…</p></div>
+      </div>
+      <div class="panel">
+        <h2>Approved mods — feature toggle</h2>
+        <div id="admin-approved-list"><p class="muted">Loading…</p></div>
       </div>
     </section>
   </main>
