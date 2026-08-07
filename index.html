@@ -14,6 +14,7 @@
       <button id="nav-mods" class="nav-link active">Mods</button>
       <button id="nav-developers" class="nav-link">Developers</button>
       <button id="nav-admin" class="nav-link hidden">Admin</button>
+      <button id="nav-settings" class="nav-link">Settings</button>
     </div>
     <div id="auth-area">
       <button id="login-btn" class="btn btn-primary">Log in with GitHub</button>
@@ -27,10 +28,10 @@
   <main>
     <p id="auth-error" class="banner banner-error hidden"></p>
 
-    <!-- ── Mods view ─────────────────────────────────────────── -->
     <section id="view-mods">
       <div class="toolbar">
-        <input type="search" id="search-input" placeholder="Search mods…" class="search-input">
+        <input type="search" id="search-input" placeholder="Search mods..." class="search-input">
+        <button id="filters-toggle-btn" class="btn btn-ghost filters-toggle">Filters</button>
         <label class="sort-label">
           Sort by
           <select id="sort-select">
@@ -43,11 +44,11 @@
 
       <div id="active-filter-banner" class="active-filter hidden">
         <span id="active-filter-text"></span>
-        <button id="clear-filter-btn" class="btn btn-ghost small">Clear ✕</button>
+        <button id="clear-filter-btn" class="btn btn-ghost small">Clear</button>
       </div>
 
       <div class="mods-layout">
-        <aside class="filters-panel">
+        <aside id="filters-panel" class="filters-panel">
           <div class="filter-group">
             <h4>Your mods</h4>
             <label class="checkbox-row">
@@ -62,11 +63,11 @@
           </div>
           <div class="filter-group">
             <h4>Platform</h4>
-            <div id="platform-filters" class="filter-list"><p class="muted small">—</p></div>
+            <div id="platform-filters" class="filter-list"><p class="muted small">-</p></div>
           </div>
           <div class="filter-group">
             <h4>Tags</h4>
-            <div id="tag-filters" class="filter-list"><p class="muted small">—</p></div>
+            <div id="tag-filters" class="filter-list"><p class="muted small">-</p></div>
           </div>
         </aside>
 
@@ -76,21 +77,19 @@
             <span id="mod-count" class="mod-count"></span>
           </div>
           <div id="mods-list" class="mods-grid">
-            <p class="muted">Loading mods…</p>
+            <p class="muted">Loading mods...</p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ── Developers view ───────────────────────────────────── -->
     <section id="view-developers" class="hidden">
       <div class="section-heading"><h2>Developers</h2></div>
       <div id="developers-list" class="developers-grid">
-        <p class="muted">Loading…</p>
+        <p class="muted">Loading...</p>
       </div>
     </section>
 
-    <!-- ── Profile view ──────────────────────────────────────── -->
     <section id="view-profile" class="hidden">
       <div class="profile-grid">
 
@@ -110,43 +109,67 @@
         <div class="panel">
           <h2>Submit a new mod</h2>
           <p class="muted small">
-            Paste your mod's GitHub repository URL. We'll read
+            Paste your mod's GitHub repository URL. We will read
             <code>mod.json</code> from the repo for the name, description,
-            version, tags, and platforms, and grab the <code>.geode</code>
-            file from your latest release automatically. The repo must
-            belong to the GitHub account you're logged in as.
+            version, tags, and platforms, then grab the <code>.geode</code>
+            file from your latest release automatically. The repo has to
+            belong to the GitHub account you are logged in as.
+          </p>
+          <p class="muted small">
+            Your latest release needs a <code>.geode</code> file attached.
+            A clean link for that file usually looks like this:
+            <code>https://github.com/{username}/{repository}/releases/download/{tag}/{username}.{modname}.geode</code>
+            for example
+            <code>https://github.com/geode-sdk/NodeIDs/releases/download/1.23.3/geode.node-ids.geode</code>.
+            Any file ending in <code>.geode</code> works, we just grab whichever one is attached to your latest release.
           </p>
           <form id="mod-form">
             <label>
               GitHub repository URL
               <input type="url" id="mod-repo-url" placeholder="https://github.com/you/your-mod" required>
             </label>
-            <button type="submit" class="btn btn-primary">Scan &amp; submit</button>
+            <button type="submit" class="btn btn-primary">Scan and submit</button>
           </form>
           <p id="submit-status" class="status-line"></p>
 
           <h3>Your pending mods</h3>
-          <div id="pending-list"><p class="muted">Loading…</p></div>
+          <div id="pending-list"><p class="muted">Loading...</p></div>
 
           <h3>Your approved mods</h3>
-          <div id="approved-list"><p class="muted">Loading…</p></div>
+          <div id="approved-list"><p class="muted">Loading...</p></div>
 
           <h3>Your rejected mods</h3>
-          <div id="rejected-list"><p class="muted">Loading…</p></div>
+          <div id="rejected-list"><p class="muted">Loading...</p></div>
         </div>
 
       </div>
     </section>
 
-    <!-- ── Admin view ────────────────────────────────────────── -->
+    <section id="view-settings" class="hidden">
+      <div class="panel">
+        <h2>Settings</h2>
+        <label class="settings-label">
+          Language
+          <select id="language-select">
+            <option value="en">English</option>
+            <option value="es" disabled>Spanish (coming soon)</option>
+            <option value="fr" disabled>French (coming soon)</option>
+            <option value="de" disabled>German (coming soon)</option>
+            <option value="pt" disabled>Portuguese (coming soon)</option>
+          </select>
+        </label>
+        <p class="muted small">More languages coming soon!</p>
+      </div>
+    </section>
+
     <section id="view-admin" class="hidden">
       <div class="panel">
         <h2>Pending review</h2>
-        <div id="admin-pending-list"><p class="muted">Loading…</p></div>
+        <div id="admin-pending-list"><p class="muted">Loading...</p></div>
       </div>
       <div class="panel">
-        <h2>Approved mods — feature toggle</h2>
-        <div id="admin-approved-list"><p class="muted">Loading…</p></div>
+        <h2>Approved mods, feature toggle</h2>
+        <div id="admin-approved-list"><p class="muted">Loading...</p></div>
       </div>
     </section>
   </main>
