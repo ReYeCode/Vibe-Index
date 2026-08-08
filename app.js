@@ -1,4 +1,334 @@
-<article class="mod-card">
+// Firebase setup.
+// Get these six values from the Firebase console: the gear icon, then
+// Project settings, then Your apps, then the web app, then SDK setup
+// and configuration. These are not secret, it is fine for them to be
+// visible in frontend code.
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.17.0/firebase-app.js';
+import {
+  getAuth,
+  GithubAuthProvider,
+  signInWithPopup,
+  signOut,
+  updateProfile,
+  getAdditionalUserInfo,
+  onAuthStateChanged,
+} from 'https://www.gstatic.com/firebasejs/12.17.0/firebase-auth.js';
+import {
+  getFirestore,
+  collection,
+  doc,
+  getDoc,
+  setDoc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  increment,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  serverTimestamp,
+} from 'https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBIQa6Ykh6149gWU1PfnBxzKuWF_s6c-mY",
+  authDomain: "vibemodded-index.firebaseapp.com",
+  projectId: "vibemodded-index",
+  storageBucket: "vibemodded-index.firebasestorage.app",
+  messagingSenderId: "182624398225",
+  appId: "1:182624398225:web:4e24a4255938f224408830"
+};
+
+// Anyone whose UID is in this list gets the Admin tab (Approve, Reject,
+// Delete, Feature). To add someone else, just put their UID in quotes
+// with a comma between each one, like the two already here. This list
+// has to match ADMIN_UIDS in firestore.rules exactly and in the same
+// order does not matter, but every UID here needs to also be there, or
+// their clicks will show up in the UI but get rejected by the server.
+const ADMIN_UIDS = ['440QtDjzU7RYumA18x6h7BagIMi2', 'RtupX72YrbYPK7ai4ot0Lbu3oCo1'];
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const githubProvider = new GithubAuthProvider();
+
+function isAdmin(user) {
+  return !!user && ADMIN_UIDS.includes(user.uid);
+}
+
+// DOM references.
+const loginBtn = document.getElementById('login-btn');
+const navMods = document.getElementById('nav-mods');
+const navDevelopers = document.getElementById('nav-developers');
+const navAdmin = document.getElementById('nav-admin');
+const navSettings = document.getElementById('nav-settings');
+const navProfile = document.getElementById('nav-profile');
+const viewMods = document.getElementById('view-mods');
+const viewDevelopers = document.getElementById('view-developers');
+const viewProfile = document.getElementById('view-profile');
+const viewAdmin = document.getElementById('view-admin');
+const viewSettings = document.getElementById('view-settings');
+const userAvatar = document.getElementById('user-avatar');
+const userName = document.getElementById('user-name');
+const authError = document.getElementById('auth-error');
+
+const profileAvatar = document.getElementById('profile-avatar');
+const displayNameForm = document.getElementById('display-name-form');
+const displayNameInput = document.getElementById('display-name-input');
+const profileStatus = document.getElementById('profile-status');
+const logoutBtn = document.getElementById('logout-btn');
+
+const modForm = document.getElementById('mod-form');
+const submitStatus = document.getElementById('submit-status');
+const modsList = document.getElementById('mods-list');
+const modCount = document.getElementById('mod-count');
+const pendingList = document.getElementById('pending-list');
+const approvedList = document.getElementById('approved-list');
+const rejectedList = document.getElementById('rejected-list');
+
+const searchInput = document.getElementById('search-input');
+const sortSelect = document.getElementById('sort-select');
+const filterMine = document.getElementById('filter-mine');
+const filterFeatured = document.getElementById('filter-featured');
+const tagFiltersEl = document.getElementById('tag-filters');
+const platformFiltersEl = document.getElementById('platform-filters');
+const activeFilterBanner = document.getElementById('active-filter-banner');
+const activeFilterText = document.getElementById('active-filter-text');
+const clearFilterBtn = document.getElementById('clear-filter-btn');
+const developersList = document.getElementById('developers-list');
+const adminPendingList = document.getElementById('admin-pending-list');
+const adminApprovedList = document.getElementById('admin-approved-list');
+const filtersToggleBtn = document.getElementById('filters-toggle-btn');
+const filtersPanel = document.getElementById('filters-panel');
+const languageSelect = document.getElementById('language-select');
+
+const PLATFORM_LABELS = {
+  win: 'Windows',
+  mac: 'macOS',
+  'mac-intel': 'macOS Intel',
+  'mac-arm': 'macOS ARM',
+  android: 'Android',
+  android32: 'Android 32 bit',
+  android64: 'Android 64 bit',
+  ios: 'iOS',
+};
+
+// State.
+let allMods = []; // every approved mod, fetched once and filtered or sorted in memory
+let developerFilter = null;
+
+// View switching.
+function showView(view) {
+  viewMods.classList.toggle('hidden', view !== 'mods');
+  viewDevelopers.classList.toggle('hidden', view !== 'developers');
+  viewProfile.classList.toggle('hidden', view !== 'profile');
+  viewAdmin.classList.toggle('hidden', view !== 'admin');
+  viewSettings.classList.toggle('hidden', view !== 'settings');
+  navMods.classList.toggle('active', view === 'mods');
+  navDevelopers.classList.toggle('active', view === 'developers');
+  navSettings.classList.toggle('active', view === 'settings');
+}
+navMods.addEventListener('click', () => showView('mods'));
+navDevelopers.addEventListener('click', () => {
+  showView('developers');
+  renderDevelopers();
+});
+navProfile.addEventListener('click', () => showView('profile'));
+navAdmin.addEventListener('click', () => {
+  showView('admin');
+  loadAdmin();
+});
+navSettings.addEventListener('click', () => showView('settings'));
+
+// The filter panel is only collapsed behind this button on small screens,
+// see the media query in style.css. On a wide screen the button stays
+// hidden and the panel is always visible.
+filtersToggleBtn.addEventListener('click', () => {
+  filtersPanel.classList.toggle('open');
+});
+
+// Only English actually works right now, so this just remembers the
+// choice for later. The other options are disabled in the markup.
+const savedLanguage = window.localStorage.getItem('vm_language') || 'en';
+languageSelect.value = savedLanguage;
+languageSelect.addEventListener('change', () => {
+  window.localStorage.setItem('vm_language', languageSelect.value);
+});
+
+// Auth.
+loginBtn.addEventListener('click', async () => {
+  authError.classList.add('hidden');
+  try {
+    const result = await signInWithPopup(auth, githubProvider);
+    const info = getAdditionalUserInfo(result);
+    const githubUsername = info?.username || '';
+    // Saved so we can check repo ownership later, even in a session
+    // where the person did not just click through the login popup.
+    await setDoc(
+      doc(db, 'users', result.user.uid),
+      {
+        githubUsername,
+        displayName: result.user.displayName || '',
+        avatarUrl: result.user.photoURL || '',
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  } catch (err) {
+    authError.textContent = `Login failed: ${err.message}`;
+    authError.classList.remove('hidden');
+  }
+});
+
+logoutBtn.addEventListener('click', () => signOut(auth));
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    loginBtn.classList.add('hidden');
+    navProfile.classList.remove('hidden');
+    navAdmin.classList.toggle('hidden', !isAdmin(user));
+    userAvatar.src = user.photoURL || '';
+    userName.textContent = user.displayName || user.email || 'logged in';
+    profileAvatar.src = user.photoURL || '';
+    displayNameInput.value = user.displayName || '';
+    loadMyMods();
+  } else {
+    loginBtn.classList.remove('hidden');
+    navProfile.classList.add('hidden');
+    navAdmin.classList.add('hidden');
+    showView('mods');
+    pendingList.innerHTML = '';
+    approvedList.innerHTML = '';
+    rejectedList.innerHTML = '';
+  }
+  renderModsList(); // "only my mods" depends on being logged in or not
+});
+
+displayNameForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const user = auth.currentUser;
+  if (!user) return;
+  profileStatus.textContent = 'Saving...';
+  try {
+    await updateProfile(user, { displayName: displayNameInput.value.trim() });
+    userName.textContent = user.displayName;
+    profileStatus.textContent = 'Updated.';
+  } catch (err) {
+    profileStatus.textContent = `Error: ${err.message}`;
+  }
+});
+
+// Helpers.
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str ?? '';
+  return div.innerHTML;
+}
+function escapeAttr(str) {
+  return escapeHtml(str).replace(/"/g, '&quot;');
+}
+function platformLabel(key) {
+  return PLATFORM_LABELS[key] || key;
+}
+
+// Public mods list.
+async function loadMods() {
+  modsList.innerHTML = '<p class="muted">Loading mods...</p>';
+  try {
+    // This needs a composite index, status ascending and createdAt
+    // descending. If it is missing or still building, this query will
+    // throw and you will land in the catch block below. Check the
+    // Firestore Indexes tab in the Firebase console if that happens.
+    const modsQuery = query(
+      collection(db, 'mods'),
+      where('status', '==', 'approved'),
+      orderBy('createdAt', 'desc')
+    );
+    const snapshot = await getDocs(modsQuery);
+    allMods = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+    buildDynamicFilters();
+    renderModsList();
+  } catch (err) {
+    console.error(err);
+    modsList.innerHTML = '<p class="muted">Could not load mods. Open the browser console to see the exact error, it usually points straight at the problem.</p>';
+  }
+}
+
+// Builds the Tags and Platform checkbox lists from whatever tags and
+// platforms actually show up across the current mods, instead of a
+// fixed list that could go stale.
+function buildDynamicFilters() {
+  const tags = new Set();
+  const platforms = new Set();
+  allMods.forEach((m) => {
+    (m.tags || []).forEach((t) => tags.add(t));
+    (m.platforms || []).forEach((p) => platforms.add(p));
+  });
+
+  tagFiltersEl.innerHTML = tags.size
+    ? [...tags].sort().map((t) => `
+      <label class="checkbox-row">
+        <input type="checkbox" class="tag-filter-checkbox" value="${escapeAttr(t)}"> ${escapeHtml(t)}
+      </label>`).join('')
+    : '<p class="muted small">No tags yet.</p>';
+
+  platformFiltersEl.innerHTML = platforms.size
+    ? [...platforms].sort().map((p) => `
+      <label class="checkbox-row">
+        <input type="checkbox" class="platform-filter-checkbox" value="${escapeAttr(p)}"> ${escapeHtml(platformLabel(p))}
+      </label>`).join('')
+    : '<p class="muted small">No platform data yet.</p>';
+
+  tagFiltersEl.querySelectorAll('.tag-filter-checkbox').forEach((cb) => cb.addEventListener('change', renderModsList));
+  platformFiltersEl.querySelectorAll('.platform-filter-checkbox').forEach((cb) => cb.addEventListener('change', renderModsList));
+}
+
+function renderModsList() {
+  const term = searchInput.value.trim().toLowerCase();
+  const selectedTags = [...tagFiltersEl.querySelectorAll('.tag-filter-checkbox:checked')].map((cb) => cb.value);
+  const selectedPlatforms = [...platformFiltersEl.querySelectorAll('.platform-filter-checkbox:checked')].map((cb) => cb.value);
+  const onlyMine = filterMine.checked;
+  const onlyFeatured = filterFeatured.checked;
+  const user = auth.currentUser;
+
+  if (developerFilter) {
+    activeFilterText.textContent = `Showing mods by ${developerFilter}`;
+    activeFilterBanner.classList.remove('hidden');
+  } else {
+    activeFilterBanner.classList.add('hidden');
+  }
+
+  let mods = allMods.filter((m) => {
+    if (term) {
+      const haystack = `${m.name} ${m.description} ${m.developer}`.toLowerCase();
+      if (!haystack.includes(term)) return false;
+    }
+    if (developerFilter && m.developer !== developerFilter) return false;
+    if (selectedTags.length && !selectedTags.some((t) => (m.tags || []).includes(t))) return false;
+    if (selectedPlatforms.length && !selectedPlatforms.some((p) => (m.platforms || []).includes(p))) return false;
+    if (onlyMine && (!user || m.authorId !== user.uid)) return false;
+    if (onlyFeatured && !m.featured) return false;
+    return true;
+  });
+
+  const sortBy = sortSelect.value;
+  mods = mods.slice().sort((a, b) => {
+    if (sortBy === 'newest') return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+    if (sortBy === 'name') return a.name.localeCompare(b.name);
+    return (b.downloads || 0) - (a.downloads || 0); // downloads is the default
+  });
+
+  modCount.textContent = mods.length ? `${mods.length} indexed` : '';
+
+  if (mods.length === 0) {
+    modsList.innerHTML = '<p class="muted">Nothing matches right now. Try clearing a filter.</p>';
+    return;
+  }
+
+  modsList.innerHTML = mods
+    .map(
+      (mod, i) => `
+    <article class="mod-card">
       <div class="mod-card-top">
         <span class="mod-index">No. ${String(mods.length - i).padStart(3, '0')}</span>
         ${mod.version ? `<span class="mod-version">v${escapeHtml(mod.version)}</span>` : ''}

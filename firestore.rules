@@ -1,0 +1,56 @@
+rules_version = '2';
+
+// Paste this into: Firebase console, Firestore Database, Rules tab, then
+// Publish.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // These two UIDs have to match ADMIN_UIDS in app.js exactly. To add
+    // someone else later, just add their UID here with a comma, the same
+    // way the second one was added.
+    function isAdmin() {
+      return request.auth != null && request.auth.uid in [
+        '440QtDjzU7RYumA18x6h7BagIMi2',
+        'RtupX72YrbYPK7ai4ot0Lbu3oCo1'
+      ];
+    }
+
+    match /users/{uid} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    match /mods/{modId} {
+      // Anyone can read an approved mod. A signed in user can also read
+      // their own pending or rejected mods for their profile page, and
+      // an admin can read anything for the admin panel.
+      allow read: if resource.data.status == 'approved'
+        || (request.auth != null && resource.data.authorId == request.auth.uid)
+        || isAdmin();
+
+      // Only a signed in user can submit, only as themself, and every
+      // new mod starts pending. The client can never write itself
+      // straight to approved.
+      allow create: if request.auth != null
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.downloadUrl is string
+        && request.resource.data.downloadUrl.size() > 0;
+
+      // An admin can change anything, including approve, reject, and
+      // feature. Anyone else, including someone who is not logged in,
+      // can bump the download counter by exactly one and nothing else,
+      // which is what happens on every click of the Download button.
+      allow update: if isAdmin()
+        || (
+          resource.data.diff(request.resource.data).affectedKeys().hasOnly(['downloads'])
+          && request.resource.data.downloads == resource.data.downloads + 1
+        );
+
+      allow delete: if isAdmin();
+    }
+  }
+}
